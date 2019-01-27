@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>12306票务</title>
+</head>
+<body>
+    <div class="ticket-form">
+        <form action="/12306/ticket/" id="ticket-form" method="post">
+            {% csrf_token %}
+            <div class="col-md-6 col-sm-12">
+                <div class="form-group" id="from-field">
+                    <input class="" name="from_station" id="form-name" placeholder="出发地）" type="text" required> </div>
+            </div>
+            <div class="col-md-6 col-sm-12">
+                <div class="form-group" id="to-field">
+                    <input class="" name="to_station" id="form-name" placeholder="目的地" type="text" required> </div>
+            </div>
+            <div class="col-md-6 col-sm-12">
+                <div class="form-group" id="date-field">
+                    <input class="" name="date" id="form-name" placeholder="抢票日期（2019-01-28）" type="text" required> </div>
+            </div>
+            <div class="col-md-6 col-sm-12">
+                <div class="form-group" id="train_number-field">
+                    <input class="" name="train_num" id="form-train_num" placeholder="列车车次（空格隔开）" type="text" required> </div>
+            </div>
+            <div class="col-md-6 col-sm-12">
+                <div class="form-group" id="passengers-field">
+                    <input class="" name="passengers" id="form-passengers" placeholder="乘客姓名" type="text" required> </div>
+            </div>
+            <div class="col-md-12 col-sm-12">
+                <div class="form-group" id="seats-field">
+                    <label><input name="seats" type="checkbox" value="商务座" />商务座 </label>
+                    <label><input name="seats" type="checkbox" value="一等座" />一等座 </label>
+                    <label><input name="seats" type="checkbox" checked="checked" value="二等座" />二等座 </label>
+                    <label><input name="seats" type="checkbox" checked="checked" value="无座" />无座 </label>
+                    <label><input name="seats" type="checkbox" value="软卧" />软卧 </label>
+                    <label><input name="seats" type="checkbox" value="硬卧" />硬卧 </label>
+                    <label><input name="seats" type="checkbox" value="软座" />软座 </label>
+                    <label><input name="seats" type="checkbox" value="硬座" />硬座 </label>
+                </div>
+            </div>
+            <div class="col-md-12 text-center">
+                <button class="btn btn-action feature" type="submit">提交信息</button>
+            </div>
+        </form>
+        {% if messages %}
+            <script>
+                {% for msg in messages %}
+                    alert('{{ msg.message }}');
+                {% endfor %}
+            </script>
+        {% endif %}
+{#        {% if messages %}#}
+{#        <ul class="messages">#}
+{#            {% for message in messages %}#}
+{#            <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>#}
+{#            {% endfor %}#}
+{#        </ul>#}
+{#        {% endif %}#}
+
+    </div>
+</body>
+</html>
