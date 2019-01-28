@@ -6,7 +6,36 @@
 </head>
 <body>
     <div>
-        <img src={{ img }} >
+        <img src="data:image/jpeg;base64,{{ img }}" >
+    </div>
+
+    <div>
+        <form method="post" id="" action="/12306/check_login/">
+            {% csrf_token %}
+            <input type="hidden" id="from_station" name="from_station" value={{ data.from_station }}>
+            <input type="hidden" id="to_station" name="to_station" value={{ data.to_station }}>
+            <input type="hidden" id="train_names" name="train_names" value="{{ data.train_names }}" >
+            <input type="hidden" id="pay_channel" name="pay_channel" value="{{ data.pay_channel }}">
+            <input type="hidden" id="date" name="date" value={{ data.date }}>
+            <input type="hidden" id="seat_types" name="seat_types" value="{{ data.seat_types }}" >
+            <input type="hidden" id="passengers" name="passengers" value="{{ data.passengers }}">
+            <button class="btn" type="submit">已扫码！</button>
+        </form>
+
     </div>
 </body>
 </html>
+{#<script src="../js/jquery-1.4.2.js" type="text/javascript"></script>#}
+{#<script type="text/javascript">#}
+{#    function chlink() {#}
+{#        var url = "/12306/check_login/";#}
+{#        $.get(url, function(data) {#}
+{#            var data1 = data.toString();#}
+{#            $("#sp1").html(data + new Date());#}
+{#        })#}
+{#    }#}
+{#    $(function() {#}
+{#    timeID = setInterval('chlink()', 1000); //注意:执行的函数需要加引号,否则会报错的#}
+{#        timeID = setInterval(() => {setTimeout('chlink()',0)}, 1000); //注意:执行的函数需要加引号,否则会报错的 #}
+{#    });#}
+{#</script>#}

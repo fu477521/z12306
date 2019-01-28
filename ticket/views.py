@@ -1,10 +1,12 @@
 import re
+import json
+import base64
 import datetime
-from django.shortcuts import render, HttpResponse
+from django.shortcuts import render, HttpResponse, HttpResponseRedirect, reverse
 from django.contrib import messages
 from .cml12306.query import query_station_code_map
 from .cml12306.run import run
-from .cml12306.auth import get_qr
+from .cml12306.auth import get_qr, check_qr
 
 def Index(request):
 
@@ -16,10 +18,10 @@ def Ticket(request):
     date = request.POST.get('date', '')
     print(type(date))
     train_num = request.POST.get('train_num', '')
-    seat_types = request.POST.getlist('seats', '')
+    seat_types = str(request.POST.getlist('seats', ''))
     passengers = request.POST.get('passengers', '')
 
-    print(from_station, to_station, date, train_num, seat_types)
+    print(from_station, to_station, date, train_num, seat_types, passengers)
     station_code_map = query_station_code_map()
     try:
         ########################################################################
@@ -53,28 +55,48 @@ def Ticket(request):
             passengers=passengers,
         )
 
-        img = get_qr()
-        context = {'img': img, 'data': data}
-        #
-        return render(request, 'login12306.html', context)
+        img, uuid, cookie_dict = get_qr()
+        print('img:', img)
+
+        data_str = str(data)
+        cookie_str = str(cookie_dict)
+        data_value = str(base64.b64encode(data_str.encode('utf-8')), 'utf-8')
+        cookie_value = str(base64.b64encode(cookie_str.encode('utf-8')), 'utf-8')
+        print('data:', data_value)
+        print('cookie_dict:', cookie_value)
+        context = {'img': img, 'uuid': uuid, 'data': data}
+        response = render(request, 'login12306.html', context)
+        response.set_cookie('uuid', uuid)
+        response.set_cookie('data', data_value)
+        response.set_cookie('cookie_dict', cookie_value)
+        return response
         # return HttpResponseRedirect(reverse('ticket:Login', args=(data,)))
     else:
         return HttpResponse("input data is error!!")
 
-def Login(request, data):
-    for _ in range(30):  # 15秒内扫码登录
-        _logger.info('请扫描二维码登录！')
-        qr_check_result = train_auth_api.auth_qr_check(qr_uuid, cookies=cookie_dict)
-        _logger.debug('check qr result. %s' % json.dumps(qr_check_result, ensure_ascii=False))
-        if qr_check_result['result_code'] == "2":
-            _logger.debug('qr check success result. %s' % json.dumps(qr_check_result, ensure_ascii=False))
-            _logger.info('二维码扫描成功！')
-            break
-
-        time.sleep(1)
+def Check_login(request):
+    uuid = request.COOKIES.get('uuid')
+    cookie_str = request.COOKIES.get('cookie_dict')
+    # data = request.COOKIES.get('data')
+    seat_types = list(request.POST.get('seat_types'))
+    print('seat_types:', type(seat_types), seat_types)
+    cookie_dict = dict(base64.b64decode(cookie_str.encode('utf-8')))
+    print('cookie_dict:', cookie_dict)
+    result = check_qr(uuid, cookie_dict)
+    if result == 1:
+        # response = HttpResponseRedirect(reverse('ticket:Login', args=(data,)))
+        return HttpResponseRedirect(reverse('ticket:Login', args=(data,)))
     else:
-        _logger.error('二维码扫描失败，重新生成二维码')
-        raise exceptions.TrainUserNotLogin('扫描述二维码失败')
+        return HttpResponse("扫码失败，重新刷新！")
+
+def Login(request, data):
+    date = data.get('date', '')
+    train_names = data.get('train_names', '')
+    seat_types = data.get('seat_types', '')
+    from_station = data.get('from_station', '')
+    to_station = data.get('to_station', '')
+    pay_channel = data.get('pay_channel', '')
+    passengers = data.get('passengers', '')
     run(date, train_names, seat_types, from_station, to_station, pay_channel, passengers=passengers)
     return HttpResponse('It is ok!!!')
 

@@ -265,16 +265,30 @@ def auth_qr():
             os.remove(filepath)
 
 
+
 def get_qr():
     train_auth_api = TrainAuthAPI()
-
-    _logger.debug('1. auth init')
     cookie_dict = train_auth_api.auth_init()
-
-    _logger.debug('2. auth get qr')
     result = train_auth_api.auth_qr_get(cookies=cookie_dict)
     print('===>', result)
     assert isinstance(result, dict)
-    # qr_uuid = result['uuid']
-    img = base64.b64decode(result['image'])
-    return img
+    qr_uuid = result['uuid']
+    # img = base64.b64decode(result['image'])
+    img = result['image']
+    return img, qr_uuid, cookie_dict
+
+def check_qr(qr_uuid, cookie_dict):
+    train_auth_api = TrainAuthAPI()
+    for _ in range(30):  # 15秒内扫码登录
+        _logger.info('请扫描二维码登录！')
+        qr_check_result = train_auth_api.auth_qr_check(qr_uuid, cookies=cookie_dict)
+        _logger.debug('check qr result. %s' % json.dumps(qr_check_result, ensure_ascii=False))
+        if qr_check_result['result_code'] == "2":
+            _logger.debug('qr check success result. %s' % json.dumps(qr_check_result, ensure_ascii=False))
+            _logger.info('二维码扫描成功！')
+            return 1
+
+        time.sleep(1)
+    else:
+        _logger.error('二维码扫描失败，重新生成二维码')
+        return 0
