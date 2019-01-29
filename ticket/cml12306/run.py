@@ -9,8 +9,8 @@ import logging
 # import platform
 import logging.config
 
-from ticket.cml12306 import configs
-from ticket.cml12306 import exceptions
+from . import configs
+from . import exceptions
 from .query import query_left_tickets
 from .auth import auth_is_login, auth_reauth, auth_qr
 from .order import order_check_no_complete, order_submit
@@ -196,10 +196,16 @@ from threading import Thread
 
 class Runner(Thread):
     def __init__(self):
-        super(Runner, self).__init__()
+        super().__init__()
+        self.COOKIES = {}
+        self.AUTH_UAMTK = None
+        self.QUERY_REMAINING_TICKET = 2
+        self.SUBMIT_ORDER = 3
+        self.PAY_ORDER = 4
 
 
-    def run(self):
+    def run(self, train_date, train_names, seat_types, from_station,
+            to_station, pay_channel=configs.BANK_ID_WX, passengers=None):
         """
         Booking entry point.
         """
@@ -225,7 +231,7 @@ class Runner(Thread):
         # order_no = None
         check_passengers = False
         passenger_id_nos = []
-        booking_status = configs.QUERY_REMAINING_TICKET  # 查询余票
+        booking_status = self.QUERY_REMAINING_TICKET  # 查询余票
         remaining_ticket_counter = 0  # 计数
 
         last_auth_time = int(time.time())
@@ -233,21 +239,20 @@ class Runner(Thread):
         while True:
             try:
                 # auth
-                if booking_status == configs.QUERY_REMAINING_TICKET and (
-                            not configs.COOKIES or not auth_is_login(configs.COOKIES)):
+                if not self.COOKIES or not auth_is_login(self.COOKIES):
                     cookies = auth_qr()
-                    configs.COOKIES = cookies
+                    self.COOKIES = cookies
 
                 # reauth
-                if booking_status != configs.QUERY_REMAINING_TICKET and configs.AUTH_UAMTK and configs.COOKIES:
+                if self.AUTH_UAMTK and self.COOKIES:
                     if int(time.time()) - last_auth_time >= configs.AUTH_REAUTH_INTERVAL:
-                        uamauth_result = auth_reauth(configs.AUTH_UAMTK, configs.COOKIES)
-                        configs.COOKIES.update(tk=uamauth_result['apptk'])
+                        uamauth_result = auth_reauth(self.AUTH_UAMTK, self.COOKIES)
+                        self.COOKIES.update(tk=uamauth_result['apptk'])
                         last_auth_time = int(time.time())
                         _logger.info('%s 重新认证成功' % uamauth_result['username'].encode('utf8'))
 
                 # check passengers
-                if booking_status != configs.QUERY_REMAINING_TICKET and not check_passengers:
+                if not check_passengers:
                     passenger_infos = user_passengers()
                     if passengers:
                         passenger_name_id_map = {}
@@ -270,38 +275,38 @@ class Runner(Thread):
                     check_passengers = True
 
                 # 未完成订单
-                if booking_status != configs.QUERY_REMAINING_TICKET and order_check_no_complete():
-                    booking_status = configs.PAY_ORDER
+                if booking_status != self.QUERY_REMAINING_TICKET and order_check_no_complete():
+                    booking_status = self.PAY_ORDER
 
                 _logger.debug('booking status. %s' % dict(configs.BOOKING_STATUS_MAP).get(booking_status, '未知状态'))
 
                 # 查询余票
-                if booking_status == configs.QUERY_REMAINING_TICKET:
+                if booking_status == self.QUERY_REMAINING_TICKET:
                     remaining_ticket_counter += 1
 
                     _logger.info('查询余票, 已查询%s次!' % remaining_ticket_counter)
                     train_info = query_left_tickets(train_date, from_station, to_station, seat_types, train_names)
                     print(train_info)
-                    booking_status = configs.SUBMIT_ORDER  # 提交订单
+                    booking_status = self.SUBMIT_ORDER  # 提交订单
 
                 # 提交订单
-                elif booking_status == configs.SUBMIT_ORDER:
+                elif booking_status == self.SUBMIT_ORDER:
                     try:
                         _logger.info('提交订单')
                         order_no = order_submit(passenger_id_nos, **train_info)
                     except (exceptions.TrainBaseException, exceptions.BookingBaseException) as e:
                         _logger.info('提交订单失败')
-                        booking_status = configs.QUERY_REMAINING_TICKET
+                        booking_status = self.QUERY_REMAINING_TICKET
                         _logger.exception(e)
                         continue
                     else:
                         # submit order successfully
                         if order_no:
                             _logger.info('提交订单成功')
-                            booking_status = configs.PAY_ORDER
+                            booking_status = self.PAY_ORDER
 
                 # 订单支付
-                elif booking_status == configs.PAY_ORDER:
+                elif booking_status == self.PAY_ORDER:
                     # 发送信息或邮件
                     _logger.info('支付订单')
                     # pay_order(pay_channel)
