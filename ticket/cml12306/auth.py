@@ -270,7 +270,6 @@ def get_qr():
     train_auth_api = TrainAuthAPI()
     cookie_dict = train_auth_api.auth_init()
     result = train_auth_api.auth_qr_get(cookies=cookie_dict)
-    print('===>', result)
     assert isinstance(result, dict)
     qr_uuid = result['uuid']
     # img = base64.b64decode(result['image'])

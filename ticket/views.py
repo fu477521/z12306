@@ -2,7 +2,8 @@ import re
 import json
 import base64
 import datetime
-from django.shortcuts import render, HttpResponse, HttpResponseRedirect, reverse
+from django.shortcuts import render, HttpResponse, HttpResponseRedirect   #, reverse
+from django.urls import reverse
 from django.contrib import messages
 from .cml12306.query import query_station_code_map
 from .cml12306.run import run
@@ -17,10 +18,10 @@ def Ticket(request):
     to_station = request.POST.get('to_station', '')
     date = request.POST.get('date', '')
     print(type(date))
-    train_num = request.POST.get('train_num', '')
-    seat_types = str(request.POST.getlist('seats', ''))
+    train_str = request.POST.get('train_num', '')
+    seat_types = request.POST.getlist('seats', '')
     passengers = request.POST.get('passengers', '')
-
+    train_num = train_str.split(' ')
     print(from_station, to_station, date, train_num, seat_types, passengers)
     station_code_map = query_station_code_map()
     try:
@@ -48,7 +49,7 @@ def Ticket(request):
         data = dict(
             from_station=station_code_map[from_station],
             to_station=station_code_map[to_station],
-            train_names=train_num.split(' '),
+            train_names=train_num,
             pay_channel='微信',
             date=date,
             seat_types=seat_types,
@@ -56,14 +57,16 @@ def Ticket(request):
         )
 
         img, uuid, cookie_dict = get_qr()
-        print('img:', img)
+        # print('img:', img)
 
         data_str = str(data)
         cookie_str = str(cookie_dict)
-        data_value = str(base64.b64encode(data_str.encode('utf-8')), 'utf-8')
-        cookie_value = str(base64.b64encode(cookie_str.encode('utf-8')), 'utf-8')
+        # data_value = str(base64.b64encode(data_str.encode('utf-8')), 'utf-8')
+        # cookie_value = str(base64.b64encode(cookie_str.encode('utf-8')), 'utf-8')
+        data_value = json.dumps(data)
+        cookie_value = json.dumps(cookie_dict)
         print('data:', data_value)
-        print('cookie_dict:', cookie_value)
+        print('cookie_dict:', type(cookie_value), cookie_value)
         context = {'img': img, 'uuid': uuid, 'data': data}
         response = render(request, 'login12306.html', context)
         response.set_cookie('uuid', uuid)
@@ -77,19 +80,31 @@ def Ticket(request):
 def Check_login(request):
     uuid = request.COOKIES.get('uuid')
     cookie_str = request.COOKIES.get('cookie_dict')
-    # data = request.COOKIES.get('data')
-    seat_types = list(request.POST.get('seat_types'))
-    print('seat_types:', type(seat_types), seat_types)
-    cookie_dict = dict(base64.b64decode(cookie_str.encode('utf-8')))
-    print('cookie_dict:', cookie_dict)
-    result = check_qr(uuid, cookie_dict)
+    data_str = request.COOKIES.get('data')
+    cookie_dict = json.loads(cookie_str)
+    # result = check_qr(uuid, cookie_dict)
+    result = 2
     if result == 1:
-        # response = HttpResponseRedirect(reverse('ticket:Login', args=(data,)))
-        return HttpResponseRedirect(reverse('ticket:Login', args=(data,)))
+        response = HttpResponseRedirect(reverse('ticket:login'))
+        response.set_cookie('uuid', uuid)
+        return response
+        # return HttpResponseRedirect(reverse('ticket:login', args=(data,)))
     else:
-        return HttpResponse("扫码失败，重新刷新！")
+        # return HttpResponse("扫码失败，重新刷新！")
+        response = HttpResponseRedirect(reverse('ticket:login'))
+        response.set_cookie('uuid', uuid)
+        response.set_cookie('data', data_str)
+        response.set_cookie('cookie_dict', cookie_str)
+        return response
 
-def Login(request, data):
+def Login(request):
+    # return HttpResponse('It is ok!!!')
+    data = json.loads(request.COOKIES.get('data', {}))
+    uuid = request.COOKIES.get('uuid', '')
+    cookie_dict = json.loads(request.COOKIES.get('cookie_dict', ''))
+    print('Logindata:', type(data), data)
+    print('Loginuuid:', type(uuid), uuid)
+    print('Logincook:', type(cookie_dict), cookie_dict)
     date = data.get('date', '')
     train_names = data.get('train_names', '')
     seat_types = data.get('seat_types', '')
@@ -97,7 +112,9 @@ def Login(request, data):
     to_station = data.get('to_station', '')
     pay_channel = data.get('pay_channel', '')
     passengers = data.get('passengers', '')
-    run(date, train_names, seat_types, from_station, to_station, pay_channel, passengers=passengers)
+    print(date, train_names, seat_types, from_station, to_station, pay_channel, passengers)
+    print(type(date), type(train_names), type(seat_types), type(from_station), type(to_station), type(pay_channel), type(passengers))
+    # run(date, train_names, seat_types, from_station, to_station, pay_channel, passengers=passengers)
     return HttpResponse('It is ok!!!')
 
 def Send_messsage(request):
