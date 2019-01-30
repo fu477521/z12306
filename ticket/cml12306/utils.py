@@ -175,3 +175,5 @@ def check_seat_types(seat_types):
     if not frozenset(seat_types) <= frozenset(dict(SEAT_TYPE_CODE_MAP).keys()):
         return False
     return True
+
+

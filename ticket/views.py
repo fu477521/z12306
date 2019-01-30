@@ -8,6 +8,7 @@ from django.contrib import messages
 from .cml12306.query import query_station_code_map
 from .cml12306.run import run
 from .cml12306.auth import get_qr, check_qr
+from .cml12306.configs import QUEUE, Q_NAME
 
 def Index(request):
 
@@ -114,8 +115,14 @@ def Login(request):
     passengers = data.get('passengers', '')
     print(date, train_names, seat_types, from_station, to_station, pay_channel, passengers)
     print(type(date), type(train_names), type(seat_types), type(from_station), type(to_station), type(pay_channel), type(passengers))
+    data = json.dumps((date, train_names, seat_types, from_station, to_station, pay_channel, passengers, uuid, cookie_dict),)
+    QUEUE.rpush(Q_NAME, data)  # 存入队列
+    print("id", id(QUEUE))
     # run(date, train_names, seat_types, from_station, to_station, pay_channel, passengers=passengers)
     return HttpResponse('It is ok!!!')
+
+
+
 
 def Send_messsage(request):
     pass

@@ -195,17 +195,25 @@ def run(train_date, train_names, seat_types, from_station, to_station, pay_chann
 from threading import Thread
 
 class Runner(Thread):
-    def __init__(self):
+    def __init__(self, data):
         super().__init__()
         self.COOKIES = {}
         self.AUTH_UAMTK = None
         self.QUERY_REMAINING_TICKET = 2
         self.SUBMIT_ORDER = 3
         self.PAY_ORDER = 4
+        self.train_date = data[0]
+        self.train_names = data[1]
+        self.seat_types = data[2]
+        self.from_station = data[3]
+        self.to_station = data[4]
+        self.pay_channel = data[5]
+        self.passengers = data[6]
+        self.uuid = data[7]
+        self.cookie_dict = data[8]
 
 
-    def run(self, train_date, train_names, seat_types, from_station,
-            to_station, pay_channel=configs.BANK_ID_WX, passengers=None):
+    def run(self):
         """
         Booking entry point.
         """
@@ -213,19 +221,20 @@ class Runner(Thread):
         assert configs.INIT_DONE is True, 'No Initialization'
 
         date_patten = re.compile(r'^\d{4}-\d{2}-\d{2}$')
-        assert date_patten.match(train_date), 'Invalid train_date param. %s' % train_date
+        print(self.train_date, )
+        assert date_patten.match(self.train_date), 'Invalid train_date param. %s' % self.train_date
         # 验证座位类型集的类型
-        assert isinstance(seat_types, (list, tuple)), u'Invalid seat_types param. %s' % seat_types
+        assert isinstance(self.seat_types, (list, tuple)), u'Invalid seat_types param. %s' % self.seat_types
         # 验证座位类型是否超出范围
-        assert frozenset(seat_types) <= frozenset(dict(configs.SEAT_TYPE_CODE_MAP).keys()
-                                                  ), u'Invalid seat_types param. %s' % seat_types
+        assert frozenset(self.seat_types) <= frozenset(dict(configs.SEAT_TYPE_CODE_MAP).keys()
+                                                  ), u'Invalid seat_types param. %s' % self.seat_types
         # 验证出发地是否在所有集里面
         # print(settings.STATION_CODE_MAP.values())
-        assert from_station in configs.STATION_CODE_MAP.values(), 'Invalid from_station param. %s' % from_station
+        assert self.from_station in configs.STATION_CODE_MAP.values(), 'Invalid from_station param. %s' % self.from_station
         # 验证目的地是否在所有集里面
-        assert to_station in configs.STATION_CODE_MAP.values(), 'Invalid to_station param. %s' % to_station
+        assert self.to_station in configs.STATION_CODE_MAP.values(), 'Invalid to_station param. %s' % self.to_station
         # 验证支付方式是否在所有集里面
-        assert pay_channel in dict(configs.BANK_ID_MAP).keys(), 'Invalid pay_channel param. %s' % pay_channel
+        # assert self.pay_channel in dict(configs.BANK_ID_MAP).values(), 'Invalid pay_channel param. %s' % self.pay_channel
 
         train_info = {}
         # order_no = None
@@ -254,16 +263,16 @@ class Runner(Thread):
                 # check passengers
                 if not check_passengers:
                     passenger_infos = user_passengers()
-                    if passengers:
+                    if self.passengers:
                         passenger_name_id_map = {}
                         for passenger_info in passenger_infos:
                             passenger_name_id_map[passenger_info['passenger_name']] = passenger_info['passenger_id_no']
 
-                        assert frozenset(passengers) <= frozenset(
+                        assert frozenset(self.passengers) <= frozenset(
                             passenger_name_id_map.keys()), u'无效的乘客. %s' % json.dumps(
-                            list(frozenset(passengers) - frozenset(passenger_name_id_map.keys())), ensure_ascii=False)
+                            list(frozenset(self.passengers) - frozenset(passenger_name_id_map.keys())), ensure_ascii=False)
 
-                        for passenger in passengers:
+                        for passenger in self.passengers:
                             _logger.info(u'订票乘客信息。姓名：%s 身份证号:%s' % (passenger, passenger_name_id_map[passenger]))
                             passenger_id_nos.append(passenger_name_id_map[passenger])
                     else:
@@ -285,7 +294,7 @@ class Runner(Thread):
                     remaining_ticket_counter += 1
 
                     _logger.info('查询余票, 已查询%s次!' % remaining_ticket_counter)
-                    train_info = query_left_tickets(train_date, from_station, to_station, seat_types, train_names)
+                    train_info = query_left_tickets(self.train_date, self.from_station, self.to_station, self.seat_types, self.train_names)
                     print(train_info)
                     booking_status = self.SUBMIT_ORDER  # 提交订单
 
@@ -344,5 +353,35 @@ class Runner(Thread):
 
             time.sleep(configs.SLEEP_INTERVAL)
 
+
+
+def main():
+    initialize()
+    while True:
+        q = configs.QUEUE
+        print("id", id(q))
+        while q.llen(configs.Q_NAME) > 0:
+            q_len = q.llen(configs.Q_NAME)
+            print("队列长度：", q_len)
+            crawlers = []
+            for i in range(q_len):
+                data = q.lpop(configs.Q_NAME)  # 取数据，不等待
+                data = json.loads(data)
+                print('队列数据：', type(data), data)
+                if data:
+                    runobj = Runner(data)
+                    crawlers.append(runobj)
+            for craw in crawlers:
+                craw.start()
+            for craw in crawlers:
+                craw.join()
+            time.sleep(1)
+        time.sleep(5)
+        print("等待数据！！！")
+
 if __name__ == '__main__':
-    run('2019-01-28', ['G6317', 'D7521', 'D7529'], ['二等座', '无座'], 'GZQ', 'ZHQ')
+    # run('2019-01-28', ['G6317', 'D7521', 'D7529'], ['二等座', '无座'], 'GZQ', 'ZHQ')
+    main()
+"""
+2773271336832
+"""

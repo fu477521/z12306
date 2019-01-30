@@ -1,12 +1,16 @@
 # encoding: utf8
 
 import os
+# from multiprocessing import Queue, Manager
+import redis
 # import logging
 
 DEBUG = True
 
 INIT_DONE = False
 
+Q_NAME = 'z12306_data'
+QUEUE = redis.StrictRedis(host='localhost', port=6379, db=1, password=None, max_connections=100, decode_responses=True)
 # Auth settings
 AUTH_UAMTK = None
 AUTH_REAUTH_INTERVAL = 60 * 3  # 单位：秒
@@ -36,7 +40,8 @@ LOGGING = {
     },
     'filters': {
         'log_level': {
-            '()': 'XXX12306._logging.LogLevelFilter',
+            # '()': os.path.join(os.path.dirname(__file__), '_logging.LogLevelFilter'),
+            '()': 'ticket.cml12306._logging.LogLevelFilter',
         }
     },
     'handlers': {
