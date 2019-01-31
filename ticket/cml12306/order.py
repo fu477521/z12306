@@ -13,11 +13,11 @@ import urllib
 import datetime
 import logging
 
-# from . import constants
+from . import configs
 from . import exceptions
 from .base import TrainBaseAPI
 from .auth import check_login
-# from .utils import time_cst_format, tomorrow
+from .utils import time_cst_format, tomorrow
 
 _logger = logging.getLogger('booking')
 
@@ -271,10 +271,10 @@ class TrainOrderAPI(TrainBaseAPI):
 
         assert date_pattern.match(start_date), 'invalid start_date params. %s' % start_date
         assert date_pattern.match(end_date), 'invalid end_date params. %s' % end_date
-        assert type in dict(constants.ORDER_QUERY_TYPE), 'invalid type params. %s' % type
+        assert type in dict(configs.ORDER_QUERY_TYPE), 'invalid type params. %s' % type
         assert come_from_flag in dict(
-            constants.ORDER_COME_FROM_FLAG), 'invalid come_from_flag params. %s' % come_from_flag
-        assert query_where in dict(constants.ORDER_WHERE), 'invalid query_where params. %s' % query_where
+            configs.ORDER_COME_FROM_FLAG), 'invalid come_from_flag params. %s' % come_from_flag
+        assert query_where in dict(configs.ORDER_WHERE), 'invalid query_where params. %s' % query_where
 
         url = 'https://kyfw.12306.cn/otn/queryOrder/queryMyOrder'
         params = {
@@ -306,11 +306,11 @@ class TrainOrderAPI(TrainBaseAPI):
             return []
 
 
-def order_no_complete():
+def order_no_complete(cookies=configs.COOKIES):
     """
     订单-未支付订单
     """
-    orders = TrainOrderAPI().order_query_no_complete(cookies=settings.COOKIES)
+    orders = TrainOrderAPI().order_query_no_complete(cookies=cookies)
     _logger.debug('order no complete orders. %s' % json.dumps(orders, ensure_ascii=False))
     if not orders:
         return None
@@ -328,7 +328,7 @@ def order_check_no_complete():
         return False
 
 
-def order_submit(passenger_id_nos, **train_info):
+def order_submit(passenger_id_nos, **train_info, cookies):
     """
     订单-提交订单
     :param passenger_id_nos 乘客身份证列表
@@ -347,16 +347,16 @@ def order_submit(passenger_id_nos, **train_info):
     submit_order_result = train_order_api.order_submit_order(
         train_info['secret'],
         train_info['train_date'],
-        cookies=settings.COOKIES)
+        cookies=cookies)
     _logger.debug('order submit order result. %s' % submit_order_result)
 
     # 2. 下单-确认乘客
-    confirm_passenger_result = train_order_api.order_confirm_passenger(cookies=settings.COOKIES)
+    confirm_passenger_result = train_order_api.order_confirm_passenger(cookies=cookies)
     _logger.debug('order confirm passenger result. %s' % json.dumps(
         confirm_passenger_result, ensure_ascii=False, cls=JSONEncoder))
 
     # 3. 下单-检查订单信息
-    passengers = TrainUserAPI().user_passengers(cookies=settings.COOKIES)
+    passengers = TrainUserAPI().user_passengers(cookies=cookies)
     select_passengers = []
     for passenger in passengers:
         if passenger['passenger_id_no'] in passenger_id_nos:

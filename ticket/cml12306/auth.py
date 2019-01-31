@@ -118,7 +118,7 @@ class TrainAuthAPI(TrainBaseAPI):
         if resp.status_code != 200:
             raise exceptions.TrainRequestException()
 
-        return json.loads(resp.content)
+        return json.loads(resp.text)
 
     def auth_uamtk(self, uamtk, **kwargs):
         """
@@ -135,7 +135,7 @@ class TrainAuthAPI(TrainBaseAPI):
         if resp.status_code != 200:
             raise exceptions.TrainRequestException()
 
-        return json.loads(resp.content)
+        return json.loads(resp.text)
 
     def auth_uamauth(self, apptk, **kwargs):
         """
@@ -150,7 +150,7 @@ class TrainAuthAPI(TrainBaseAPI):
         resp = self.submit(url, params, method='POST', parse_resp=False, **kwargs)
         if resp.status_code != 200:
             raise exceptions.TrainRequestException()
-        return json.loads(resp.content)
+        return json.loads(resp.text)
 
 
 

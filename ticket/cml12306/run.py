@@ -263,7 +263,7 @@ class Runner(Thread):
 
                         assert frozenset(self.passengers) <= frozenset(
                             passenger_name_id_map.keys()), u'无效的乘客. %s' % json.dumps(
-                            frozenset(self.passengers) - frozenset(passenger_name_id_map.keys()), ensure_ascii=False)
+                            list(frozenset(self.passengers) - frozenset(passenger_name_id_map.keys())), ensure_ascii=False)
                         print("进入乘客检查2")
                         for passenger in self.passengers:
                             _logger.info(u'订票乘客信息。姓名：%s 身份证号:%s' % (passenger, passenger_name_id_map[passenger]))
