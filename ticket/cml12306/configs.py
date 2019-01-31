@@ -28,6 +28,23 @@ STATION_CODE_MAP = {}
 CHROME_APP_OPEN_CMD_WINDOWS = 'C:\Program Files (x86)\Google\Chrome\Application\chrome.exe {filepath}'  # TODO Windows Chrome 打开文件cmd
 CHROME_APP_OPEN_CMD = CHROME_APP_OPEN_CMD_WINDOWS
 
+# 格式	            描述
+# %(name)s	        记录器的名称
+# %(levelno)s	    数字形式的日志记录级别
+# %(levelname)s	    日志记录级别的文本名称
+# %(filename)s	    执行日志记录调用的源文件的文件名称
+# %(pathname)s	    执行日志记录调用的源文件的路径名称
+# %(funcName)s	    执行日志记录调用的函数名称
+# %(module)s	    执行日志记录调用的模块名称
+# %(lineno)s	    执行日志记录调用的行号
+# %(created)s	    执行日志记录的时间
+# %(asctime)s	    日期和时间
+# %(msecs)s	        毫秒部分
+# %(thread)d	    线程ID
+# %(threadName)s	线程名称
+# %(process)d	    进程ID
+# %(message)s	    记录的消息
+
 LOGGING = {
     'version': 1,
     'formatters': {
@@ -45,8 +62,8 @@ LOGGING = {
         }
     },
     'handlers': {
-        'console': {
-            'class': 'logging.StreamHandler',
+        'console': {                            # 打印到终端的日志
+            'class': 'logging.StreamHandler',   # 打印到屏幕
             'formatter': 'default',
             'level': 'INFO',
             'filters': ['log_level'],
@@ -56,7 +73,16 @@ LOGGING = {
             'filename': 'app.log',
             'formatter': 'app',
             'level': 'DEBUG',
-        }
+        },
+        # 'default': {                                # 打印到文件的日志,收集DEBUG及以上的日志
+        #     'level': 'DEBUG',
+        #     'class': 'logging.handlers.RotatingFileHandler',  # 保存到文件
+        #     'formatter': 'standard',
+        #     'filename': 'logfile_path',             # 日志文件
+        #     'maxBytes': 1024*1024*5,                # 日志大小 5M
+        #     'backupCount': 5,
+        #     'encoding': 'utf-8',                    # 日志文件的编码，再也不用担心中文log乱码了
+        # },
     },
     'loggers': {
         'booking': {

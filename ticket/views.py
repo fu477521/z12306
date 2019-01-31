@@ -21,7 +21,7 @@ def Ticket(request):
     print(type(date))
     train_str = request.POST.get('train_num', '')
     seat_types = request.POST.getlist('seats', '')
-    passengers = request.POST.get('passengers', '')
+    passengers = request.POST.getlist('passengers', '')
     train_num = train_str.split(' ')
     print(from_station, to_station, date, train_num, seat_types, passengers)
     station_code_map = query_station_code_map()

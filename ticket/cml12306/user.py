@@ -145,10 +145,10 @@ class TrainMemberAPI(TrainBaseAPI):
         resp = self.submit(url, params, method='POST', **kwargs)
         return resp
 
-def user_passengers():
+def user_passengers(cookies=configs.COOKIES):
     """
     User passengers
     """
-    passengers = TrainUserAPI().user_passengers(cookies=configs.COOKIES)
+    passengers = TrainUserAPI().user_passengers(cookies=cookies)
     _logger.debug(json.dumps(passengers, ensure_ascii=False))
     return passengers

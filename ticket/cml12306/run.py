@@ -12,7 +12,7 @@ import logging.config
 from . import configs
 from . import exceptions
 from .query import query_left_tickets
-from .auth import auth_is_login, auth_reauth, auth_qr
+from .auth import auth_is_login, auth_reauth, auth_qr, check_qr
 from .order import order_check_no_complete, order_submit
 from .user import user_passengers
 
@@ -222,19 +222,6 @@ class Runner(Thread):
 
         date_patten = re.compile(r'^\d{4}-\d{2}-\d{2}$')
         print(self.train_date, )
-        assert date_patten.match(self.train_date), 'Invalid train_date param. %s' % self.train_date
-        # 验证座位类型集的类型
-        assert isinstance(self.seat_types, (list, tuple)), u'Invalid seat_types param. %s' % self.seat_types
-        # 验证座位类型是否超出范围
-        assert frozenset(self.seat_types) <= frozenset(dict(configs.SEAT_TYPE_CODE_MAP).keys()
-                                                  ), u'Invalid seat_types param. %s' % self.seat_types
-        # 验证出发地是否在所有集里面
-        # print(settings.STATION_CODE_MAP.values())
-        assert self.from_station in configs.STATION_CODE_MAP.values(), 'Invalid from_station param. %s' % self.from_station
-        # 验证目的地是否在所有集里面
-        assert self.to_station in configs.STATION_CODE_MAP.values(), 'Invalid to_station param. %s' % self.to_station
-        # 验证支付方式是否在所有集里面
-        # assert self.pay_channel in dict(configs.BANK_ID_MAP).values(), 'Invalid pay_channel param. %s' % self.pay_channel
 
         train_info = {}
         # order_no = None
@@ -248,12 +235,15 @@ class Runner(Thread):
         while True:
             try:
                 # auth
-                if not self.COOKIES or not auth_is_login(self.COOKIES):
-                    cookies = auth_qr()
+                if booking_status != self.QUERY_REMAINING_TICKET and not self.COOKIES or not auth_is_login(self.COOKIES):
+                    print("进入登录验证")
+                    cookies, uamtk = check_qr(self.uuid, self.cookie_dict)
                     self.COOKIES = cookies
+                    self.AUTH_UAMTK = uamtk
 
                 # reauth
                 if self.AUTH_UAMTK and self.COOKIES:
+                    print("进入重新验证")
                     if int(time.time()) - last_auth_time >= configs.AUTH_REAUTH_INTERVAL:
                         uamauth_result = auth_reauth(self.AUTH_UAMTK, self.COOKIES)
                         self.COOKIES.update(tk=uamauth_result['apptk'])
@@ -262,16 +252,19 @@ class Runner(Thread):
 
                 # check passengers
                 if not check_passengers:
-                    passenger_infos = user_passengers()
+                    print("进入乘客检查")
+                    passenger_infos = user_passengers(cookies=self.COOKIES)
+                    print(passenger_infos)
                     if self.passengers:
+                        print("进入乘客检查1")
                         passenger_name_id_map = {}
                         for passenger_info in passenger_infos:
                             passenger_name_id_map[passenger_info['passenger_name']] = passenger_info['passenger_id_no']
 
                         assert frozenset(self.passengers) <= frozenset(
                             passenger_name_id_map.keys()), u'无效的乘客. %s' % json.dumps(
-                            list(frozenset(self.passengers) - frozenset(passenger_name_id_map.keys())), ensure_ascii=False)
-
+                            frozenset(self.passengers) - frozenset(passenger_name_id_map.keys()), ensure_ascii=False)
+                        print("进入乘客检查2")
                         for passenger in self.passengers:
                             _logger.info(u'订票乘客信息。姓名：%s 身份证号:%s' % (passenger, passenger_name_id_map[passenger]))
                             passenger_id_nos.append(passenger_name_id_map[passenger])
@@ -280,11 +273,12 @@ class Runner(Thread):
                         _logger.info(
                             u'订票乘客信息。姓名:%s 身份证号:%s' %
                             (passenger_infos[0]['passenger_name'], passenger_infos[0]['passenger_id_no']))
-
+                    print("进入乘客检查333")
                     check_passengers = True
 
                 # 未完成订单
                 if booking_status != self.QUERY_REMAINING_TICKET and order_check_no_complete():
+                    print("进入未完成订单")
                     booking_status = self.PAY_ORDER
 
                 _logger.debug('booking status. %s' % dict(configs.BOOKING_STATUS_MAP).get(booking_status, '未知状态'))
@@ -329,7 +323,9 @@ class Runner(Thread):
                 # continue
 
             except exceptions.TrainUserNotLogin:
-                _logger.warn('用户未登录，请重新扫码登录')
+                import traceback
+                traceback.print_exc()
+                _logger.info('用户未登录，请重新扫码登录')
                 continue
 
             except exceptions.TrainBaseException as e:

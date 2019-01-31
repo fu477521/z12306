@@ -32,12 +32,12 @@ def _debug_resp(url, resp):
     # filepath = '/tmp/hack12306/%s/%s-%s' % (today_str, url, uuid.uuid1().hex)
     BASE_DIR = os.path.abspath(os.path.dirname(__file__))
     DATA_DIR = os.path.join(BASE_DIR, 'cml_12306')
-    filepath = os.path.join(os.path.join(DATA_DIR, today_str), '%s-%s' % (url, uuid.uuid1().hex))
+    filepath = os.path.join(os.path.join(DATA_DIR, today_str), '%s-%s' % (url[-8:-1], uuid.uuid1().hex))
     if not os.path.exists(os.path.dirname(filepath)):
         os.makedirs(os.path.dirname(filepath))
 
-    with open(filepath, 'w') as f:
-        f.write(resp.content)
+    with open(filepath, 'w', encoding='utf-8') as f:
+        f.write(resp.text)
 
 
 class TrainBaseAPI(object):
@@ -58,7 +58,7 @@ class TrainBaseAPI(object):
                 resp = requests.post(url, data=params, **kwargs)
         else:
             assert False, 'Unknown http method'
-
+        print(resp.text)
         if not parse_resp:
             return resp
 
@@ -66,18 +66,18 @@ class TrainBaseAPI(object):
             if DEBUG:
                 _debug_resp(url, resp)
             raise TrainRequestException(str(resp))
+        if resp.content:
+            try:
+                content_json = resp.json()
+            except ValueError as e:
+                if DEBUG:
+                    _debug_resp(url, resp)
 
-        try:
-            content_json = json.loads(resp.content)
-        except ValueError as e:
-            if DEBUG:
-                _debug_resp(url, resp)
+                _logger.warning(e)
+                raise TrainRequestException('response is not valid json type')
 
-            _logger.warning(e)
-            raise TrainRequestException('response is not valid json type')
+            if content_json['status'] is not True:
+                _logger.warning('%s resp. %s' % (url, resp.content))
+                raise TrainAPIException(resp.content)
 
-        if content_json['status'] is not True:
-            _logger.warning('%s resp. %s' % (url, resp.content))
-            raise TrainAPIException(resp.content)
-
-        return content_json
+            return content_json
