@@ -114,12 +114,12 @@ class JSONEncoder(json.JSONEncoder):
 def gen_passenger_ticket_tuple(seat_type, passenger_flag, passenger_type,
                                name, id_type, id_no, mobile, **kwargs):
     l = [seat_type, passenger_flag, passenger_type, name, id_type, id_no, mobile, 'N']
-    return tuple([unicode(i).encode('utf8') for i in l])
+    return tuple([i.encode('utf8') for i in l])
 
 
 def gen_old_passenge_tuple(name, id_type, id_no, passenger_type, **kwargs):
     l = [name, id_type, id_no,  str(passenger_type)+'_']
-    return tuple([unicode(i).encode('utf8') for i in l])
+    return tuple([i.encode('utf8') for i in l])
 
 def qr_terminal_draw(filepath):
     assert isinstance(filepath, (str))

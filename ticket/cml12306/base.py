@@ -46,19 +46,23 @@ class TrainBaseAPI(object):
     """
     def submit(self, url, params=None, method='POST', format='form', parse_resp=True, **kwargs):
         _logger.debug('train request. url:%s method:%s params:%s' % (url, method, json.dumps(params)))
-
+        resp_proxy = requests.get("http://119.29.97.152:5555/proxy/https").text
+        proxies = {
+            "http": "http://{}".format(resp_proxy),
+            "https": "https://{}".format(resp_proxy),
+        }
         if method == 'GET':
             if isinstance(params, list):
                 params = urlencode(params)
-            resp = requests.get(url, params, **kwargs)
+            resp = requests.get(url, params, proxies=proxies, **kwargs)
         elif method == 'POST':
             if format == 'json':
-                resp = requests.post(url, json=params, **kwargs)
+                resp = requests.post(url, json=params, proxies=proxies, **kwargs)
             else:
-                resp = requests.post(url, data=params, **kwargs)
+                resp = requests.post(url, data=params, proxies=proxies, **kwargs)
         else:
             assert False, 'Unknown http method'
-        print(resp.text)
+        # print(resp.text)
         if not parse_resp:
             return resp
 
@@ -72,6 +76,7 @@ class TrainBaseAPI(object):
             except ValueError as e:
                 if DEBUG:
                     _debug_resp(url, resp)
+
 
                 _logger.warning(e)
                 raise TrainRequestException('response is not valid json type')

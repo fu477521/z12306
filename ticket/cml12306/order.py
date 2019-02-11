@@ -17,7 +17,13 @@ from . import configs
 from . import exceptions
 from .base import TrainBaseAPI
 from .auth import check_login
-from .utils import time_cst_format, tomorrow
+# from .query import TrainInfoQueryAPI
+from .user import TrainUserAPI
+# from .utils import time_cst_format, tomorrow
+from .utils import (tomorrow, JSONEncoder, time_cst_format,
+                             gen_old_passenge_tuple, gen_passenger_ticket_tuple)
+
+
 
 _logger = logging.getLogger('booking')
 
@@ -54,7 +60,7 @@ class TrainOrderAPI(TrainBaseAPI):
 
         url = 'https://kyfw.12306.cn/otn/leftTicket/submitOrderRequest'
         params = {
-            'secretStr': urllib.unquote(secret_str),
+            'secretStr': urllib.parse.unquote(secret_str),
             'train_date': train_date,
             'back_train_date': back_train_date,
             'tour_flag': tour_flag,
@@ -85,13 +91,13 @@ class TrainOrderAPI(TrainBaseAPI):
             raise exceptions.TrainRequestException()
 
         token_pattern = re.compile(r"var globalRepeatSubmitToken = '(\S+)'")
-        token = token_pattern.search(resp.content).group(1)
+        token = token_pattern.search(resp.text).group(1)
 
         ticket_info_pattern = re.compile(r'var ticketInfoForPassengerForm=(\{.+\})?')
-        ticket_info = json.loads(ticket_info_pattern.search(resp.content).group(1).replace("'", '"'))
+        ticket_info = json.loads(ticket_info_pattern.search(resp.text).group(1).replace("'", '"'))
 
         order_request_params_pattern = re.compile(r'var orderRequestDTO=(\{.+\})?')
-        order_request_params = json.loads(order_request_params_pattern.search(resp.content).group(1).replace("'", '"'))
+        order_request_params = json.loads(order_request_params_pattern.search(resp.text).group(1).replace("'", '"'))
 
         resp = {
             'token': token,
@@ -317,18 +323,19 @@ def order_no_complete(cookies=configs.COOKIES):
     return orders[0]['sequence_no']
 
 
-def order_check_no_complete():
+def order_check_no_complete(cookies):
     """
     订单-检查是有未支付订单
     :return True:有支付订单 False:没有未支付订单
     """
-    if order_no_complete():
+    if order_no_complete(cookies):
         return True
     else:
         return False
 
+import copy
 
-def order_submit(passenger_id_nos, **train_info, cookies):
+def order_submit(passenger_id_nos, cookies, **train_info):
     """
     订单-提交订单
     :param passenger_id_nos 乘客身份证列表
@@ -368,26 +375,27 @@ def order_submit(passenger_id_nos, **train_info, cookies):
     old_passenger_list = []
     for passenger_info in select_passengers:
         passenger_ticket_list.append(gen_passenger_ticket_tuple(
-            train_info['seat_type_code'],
-            passenger_info['passenger_flag'],
-            passenger_info['passenger_type'],
-            passenger_info['passenger_name'],
-            passenger_info['passenger_id_type_code'],
-            passenger_info['passenger_id_no'],
-            passenger_info['mobile_no']))
+            str(train_info['seat_type_code']),
+            str(passenger_info['passenger_flag']),
+            str(passenger_info['passenger_type']),
+            str(passenger_info['passenger_name']),
+            str(passenger_info['passenger_id_type_code']),
+            str(passenger_info['passenger_id_no']),
+            str(passenger_info['mobile_no'])))
         old_passenger_list.append(
             gen_old_passenge_tuple(
-                passenger_info['passenger_name'],
-                passenger_info['passenger_id_type_code'],
-                passenger_info['passenger_id_no'],
-                passenger_info['passenger_type']))
-
+                str(passenger_info['passenger_name']),
+                str(passenger_info['passenger_id_type_code']),
+                str(passenger_info['passenger_id_no']),
+                str(passenger_info['passenger_type'])))
+    print('order====>', passenger_ticket_list)
     passenger_ticket_str = '_'.join([','.join(p) for p in passenger_ticket_list])
+    print('order====>', passenger_ticket_str)
     old_passenger_str = ''.join([','.join(p) for p in old_passenger_list])
-
+    print('order====>', old_passenger_str)
     check_order_result = train_order_api.order_confirm_passenger_check_order(
         confirm_passenger_result['token'],
-        passenger_ticket_str, old_passenger_str, cookies=settings.COOKIES)
+        passenger_ticket_str, old_passenger_str, cookies=cookies)
     _logger.debug('order check order result. %s' % json.dumps(check_order_result, ensure_ascii=False, cls=JSONEncoder))
     if not check_order_result['submitStatus']:
         raise exceptions.BookingSubmitOrderError(check_order_result.get('errMsg', u'提交订单失败').encode('utf8'))
@@ -404,9 +412,9 @@ def order_submit(passenger_id_nos, **train_info, cookies):
         confirm_passenger_result['order_request_params']['station_train_code'],
         confirm_passenger_result['ticket_info']['queryLeftTicketRequestDTO']['purpose_codes'],
         confirm_passenger_result['ticket_info']['train_location'],
-        cookies=settings.COOKIES,
+        cookies=cookies,
     )
-    _logger.debug('order confirm passenger get queue count result. %s' % json.dumps(
+    _logger.info('order confirm passenger get queue count result. %s' % json.dumps(
         queue_count_result, ensure_ascii=False, cls=JSONEncoder))
 
     # 5. 下单-确认车票
@@ -416,15 +424,15 @@ def order_submit(passenger_id_nos, **train_info, cookies):
         confirm_passenger_result['ticket_info']['key_check_isChange'],
         confirm_passenger_result['ticket_info']['leftTicketStr'],
         confirm_passenger_result['ticket_info']['train_location'],
-        confirm_passenger_result['token'], cookies=settings.COOKIES)
-    _logger.debug('order confirm passenger confirm ticket result. %s' % json.dumps(
+        confirm_passenger_result['token'], cookies=cookies)
+    _logger.info('order confirm passenger confirm ticket result. %s' % json.dumps(
         confirm_ticket_result, ensure_ascii=False, cls=JSONEncoder))
 
     # 6. 下单-查询订单
     try_times = 4
     while try_times > 0:
         query_order_result = train_order_api.order_confirm_passenger_query_order(
-            confirm_passenger_result['token'], cookies=settings.COOKIES)
+            confirm_passenger_result['token'], cookies=cookies)
         _logger.debug('order confirm passenger query order result. %s' % json.dumps(
             query_order_result, ensure_ascii=False, cls=JSONEncoder))
 
@@ -448,7 +456,7 @@ def order_submit(passenger_id_nos, **train_info, cookies):
 
     # 7. 下单-订单结果查询
     order_result = train_order_api.order_confirm_passenger_result_order(
-        query_order_result['orderId'], confirm_passenger_result['token'], cookies=settings.COOKIES)
+        query_order_result['orderId'], confirm_passenger_result['token'], cookies=cookies)
     _logger.debug('order result. %s' % json.dumps(order_result, ensure_ascii=False))
 
     _logger.info(

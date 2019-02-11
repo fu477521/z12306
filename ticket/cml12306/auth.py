@@ -134,8 +134,12 @@ class TrainAuthAPI(TrainBaseAPI):
         resp = self.submit(url, params, method='POST', parse_resp=False, **kwargs)
         if resp.status_code != 200:
             raise exceptions.TrainRequestException()
-
-        return json.loads(resp.text)
+        try:
+            result = resp.json()
+            return result
+        except:
+            return self.auth_uamtk(uamtk, **kwargs)
+        # return json.loads(resp.text)
 
     def auth_uamauth(self, apptk, **kwargs):
         """
@@ -291,7 +295,9 @@ def check_qr(qr_uuid, cookie_dict):
         return None, None
 
     _uamtk = qr_check_result['uamtk']
+    print(_uamtk)
     uamtk_result = train_auth_api.auth_uamtk(_uamtk, cookies=cookie_dict)
+    print(uamtk_result)
     uamauth_result = train_auth_api.auth_uamauth(uamtk_result['newapptk'], cookies=cookie_dict)
     cookies = {
         'tk': uamauth_result['apptk']

@@ -277,7 +277,7 @@ class Runner(Thread):
                     check_passengers = True
 
                 # 未完成订单
-                if booking_status != self.QUERY_REMAINING_TICKET and order_check_no_complete():
+                if booking_status != self.QUERY_REMAINING_TICKET and order_check_no_complete(self.COOKIES):
                     print("进入未完成订单")
                     booking_status = self.PAY_ORDER
 
@@ -296,8 +296,10 @@ class Runner(Thread):
                 elif booking_status == self.SUBMIT_ORDER:
                     try:
                         _logger.info('提交订单')
-                        order_no = order_submit(passenger_id_nos, **train_info)
+                        order_no = order_submit(passenger_id_nos, self.COOKIES, **train_info)
                     except (exceptions.TrainBaseException, exceptions.BookingBaseException) as e:
+                        import traceback
+                        traceback.print_exc()
                         _logger.info('提交订单失败')
                         booking_status = self.QUERY_REMAINING_TICKET
                         _logger.exception(e)
@@ -375,9 +377,33 @@ def main():
         time.sleep(5)
         print("等待数据！！！")
 
+
+def runobj(*data):
+    runobj = Runner(data)
+    runobj.run()
+
+import threading
+import _thread
+
+def main00():
+    initialize()
+    while True:
+        q = configs.QUEUE
+        while q.llen(configs.Q_NAME) > 0:
+            q_len = q.llen(configs.Q_NAME)
+            for i in range(q_len):
+                data = q.lpop(configs.Q_NAME)  # 取数据，不等待
+                data = json.loads(data)
+                print('队列数据：', type(data), data)
+                if data:
+                    # threading._start_new_thread(runobj, data)
+                    _thread.start_new_thread(runobj, tuple(data))
+        time.sleep(5)
+        print("等待数据！！！")
+
 if __name__ == '__main__':
     # run('2019-01-28', ['G6317', 'D7521', 'D7529'], ['二等座', '无座'], 'GZQ', 'ZHQ')
-    main()
+    main00()
 """
 2773271336832
 """
