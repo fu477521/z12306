@@ -364,30 +364,31 @@ def order_submit(passenger_id_nos, cookies, **train_info):
 
     # 3. 下单-检查订单信息
     passengers = TrainUserAPI().user_passengers(cookies=cookies)
+
     select_passengers = []
     for passenger in passengers:
         if passenger['passenger_id_no'] in passenger_id_nos:
             select_passengers.append(copy.deepcopy(passenger))
 
     assert select_passengers, '乘客不存在. %s' % json.dumps(passenger_id_nos, ensure_ascii=False)
-
+    print("====>下单-检查订单信息:", select_passengers)
     passenger_ticket_list = []
     old_passenger_list = []
     for passenger_info in select_passengers:
         passenger_ticket_list.append(gen_passenger_ticket_tuple(
-            str(train_info['seat_type_code']),
-            str(passenger_info['passenger_flag']),
-            str(passenger_info['passenger_type']),
-            str(passenger_info['passenger_name']),
-            str(passenger_info['passenger_id_type_code']),
-            str(passenger_info['passenger_id_no']),
-            str(passenger_info['mobile_no'])))
+            train_info['seat_type_code'],
+            passenger_info['passenger_flag'],
+            passenger_info['passenger_type'],
+            passenger_info['passenger_name'],
+            passenger_info['passenger_id_type_code'],
+            passenger_info['passenger_id_no'],
+            passenger_info['mobile_no']))
         old_passenger_list.append(
             gen_old_passenge_tuple(
-                str(passenger_info['passenger_name']),
-                str(passenger_info['passenger_id_type_code']),
-                str(passenger_info['passenger_id_no']),
-                str(passenger_info['passenger_type'])))
+                passenger_info['passenger_name'],
+                passenger_info['passenger_id_type_code'],
+                passenger_info['passenger_id_no'],
+                passenger_info['passenger_type']))
     print('order====>', passenger_ticket_list)
     passenger_ticket_str = '_'.join([','.join(p) for p in passenger_ticket_list])
     print('order====>', passenger_ticket_str)

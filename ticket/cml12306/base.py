@@ -54,12 +54,12 @@ class TrainBaseAPI(object):
         if method == 'GET':
             if isinstance(params, list):
                 params = urlencode(params)
-            resp = requests.get(url, params, proxies=proxies, **kwargs)
+            resp = requests.get(url, params, **kwargs)
         elif method == 'POST':
             if format == 'json':
-                resp = requests.post(url, json=params, proxies=proxies, **kwargs)
+                resp = requests.post(url, json=params, **kwargs)
             else:
-                resp = requests.post(url, data=params, proxies=proxies, **kwargs)
+                resp = requests.post(url, data=params, **kwargs)
         else:
             assert False, 'Unknown http method'
         # print(resp.text)
