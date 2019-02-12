@@ -289,7 +289,7 @@ class Runner(Thread):
 
                     _logger.info('查询余票, 已查询%s次!' % remaining_ticket_counter)
                     train_info = query_left_tickets(self.train_date, self.from_station, self.to_station, self.seat_types, self.train_names)
-                    print(train_info)
+                    # print(train_info)
                     booking_status = self.SUBMIT_ORDER  # 提交订单
 
                 # 提交订单
