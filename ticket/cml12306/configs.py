@@ -13,7 +13,7 @@ Q_NAME = 'z12306_data'
 QUEUE = redis.StrictRedis(host='localhost', port=6379, db=1, password=None, max_connections=100, decode_responses=True)
 # Auth settings
 AUTH_UAMTK = None
-AUTH_REAUTH_INTERVAL = 60 * 2  # 单位：秒
+AUTH_REAUTH_INTERVAL = 60 * 8  # 单位：秒
 
 STATION_LIST_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'station_list.json')
 # QUERY_LEFT_TICKET_COUNTER_FILE = '/tmp/12306-booking/left_ticket_counter'

@@ -221,7 +221,7 @@ class Runner(Thread):
         assert configs.INIT_DONE is True, 'No Initialization'
 
         date_patten = re.compile(r'^\d{4}-\d{2}-\d{2}$')
-        print(self.train_date, )
+        # print(self.train_date, )
 
         train_info = {}
         # order_no = None

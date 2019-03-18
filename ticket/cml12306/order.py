@@ -434,20 +434,20 @@ def order_submit(passenger_id_nos, cookies, **train_info):
     while try_times > 0:
         query_order_result = train_order_api.order_confirm_passenger_query_order(
             confirm_passenger_result['token'], cookies=cookies)
-        _logger.debug('order confirm passenger query order result. %s' % json.dumps(
+        _logger.info('order confirm passenger query order result. %s' % json.dumps(
             query_order_result, ensure_ascii=False, cls=JSONEncoder))
 
-        if query_order_result['orderId']:
-            # order submit successfully
-            break
-        else:
-            # 今日订单取消次数超限，无法继续订票
-            error_code = query_order_result.get('errorcode')
-            error_msg = query_order_result.get('msg', '').encode('utf8')
-            order_cancel_exceed_limit_pattern = re.compile(r'取消次数过多')
-
-            if error_code == '0' and order_cancel_exceed_limit_pattern.search(error_msg):
-               raise exceptions.BookingOrderCancelExceedLimit(query_order_result['msg'].encode('utf8'))
+        # if query_order_result['orderId']:
+        #     # order submit successfully
+        #     break
+        # else:
+        #     # 今日订单取消次数超限，无法继续订票
+        #     error_code = query_order_result.get('errorcode')
+        #     error_msg = query_order_result.get('msg', '').encode('utf8')
+        #     order_cancel_exceed_limit_pattern = re.compile(r'取消次数过多')
+        #
+        #     if error_code == '0' and order_cancel_exceed_limit_pattern.search(error_msg):
+        #        raise exceptions.BookingOrderCancelExceedLimit(query_order_result['msg'].encode('utf8'))
 
         time.sleep(0.5)
         try_times -= 1

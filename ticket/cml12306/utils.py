@@ -52,7 +52,7 @@ def urlencode(params):
         for param in params:
             # param_list.append(urllib.urlencode({param[0]: param[1]}))   # Python2
             # print(param[0], param[1])
-            print(param)
+            # print('param', param)
             param_list.append(urllib.parse.urlencode({param[0]: param[1]}))
         return '&'.join(param_list)
     elif isinstance(params, dict):

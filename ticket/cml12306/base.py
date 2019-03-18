@@ -46,11 +46,11 @@ class TrainBaseAPI(object):
     """
     def submit(self, url, params=None, method='POST', format='form', parse_resp=True, **kwargs):
         _logger.debug('train request. url:%s method:%s params:%s' % (url, method, json.dumps(params)))
-        resp_proxy = requests.get("http://119.29.97.152:5555/proxy/https").text
-        proxies = {
-            "http": "http://{}".format(resp_proxy),
-            "https": "https://{}".format(resp_proxy),
-        }
+        # resp_proxy = requests.get("http://119.29.97.152:5555/proxy/https").text
+        # proxies = {
+        #     "http": "http://{}".format(resp_proxy),
+        #     "https": "https://{}".format(resp_proxy),
+        # }
         if method == 'GET':
             if isinstance(params, list):
                 params = urlencode(params)
